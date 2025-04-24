@@ -3,6 +3,7 @@
 import os
 import sys
 import json
+import argparse
 import re
 from httpx import HTTPStatusError
 from crowdsec_service_api import (
@@ -15,10 +16,22 @@ from crowdsec_service_api import (
     BlocklistDeleteIPsRequest,
 )
 
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='CrowdSec bouncer to Service API blocklist')
+parser.add_argument('--blocklist', dest='blocklist_name', 
+                    help='Name of the blocklist ou want to feed (default: from env BLOCKLIST_NAME)')
+parser.add_argument('--sapi-key', dest='api_key',
+                    help='CrowdSec Service API key (default: from env SAPI_KEY)')
+args = parser.parse_args()
 
-## Todo: get those from command line
-KEY = os.getenv('KEY') or "xxxxxxx"
-BLOCKLIST_NAME = os.getenv('BLOCKLIST_NAME') or "xxxxxxx"
+# Configuration priority: command line args > environment variables > defaults
+SAPI_KEY = (args.api_key or 
+       os.getenv('KEY') or 
+       "xxxxxxx")  # Default as last resort
+
+BLOCKLIST_NAME = (args.blocklist_name or 
+                  os.getenv('BLOCKLIST_NAME') or 
+                  "xxxxxxx")  # Default as last resort
 
 def api_key_auth(auth):
     try:
@@ -165,14 +178,14 @@ def handle_command(action, ip, expiration):
         return
 
     # Verify if the API key is set and valid
-    if KEY is None:
+    if SAPI_KEY is None:
         print("API key not set. Please set the KEY environment variable.")
         return
     if BLOCKLIST_NAME is None:
         print("Blocklist name not set. Please set the BLOCKLIST_NAME environment variable.")
         return
 
-    auth = ApiKeyAuth(api_key=KEY)
+    auth = ApiKeyAuth(api_key=SAPI_KEY)
     if action == "add":
         blocklist_id = create_blocklist(auth)
         if blocklist_id is None:
