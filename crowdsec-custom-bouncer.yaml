@@ -1,0 +1,10 @@
+# Path to python from venv
+bin_path: "/home/bui/github/crowdsec/pocs/custom2bl/.venv/bin/python3"
+# Path to the python script
+bin_args: ["/home/bui/github/crowdsec/pocs/custom2bl/push2bl.py", "--blocklist", "ma_blocklist", "--sapi-key", "sapi_key"]
+# Invokes binary once and feeds incoming decisions to its stdin.
+feed_via_stdin: true
+# Number of times to restart the binary. relevant if feed_via_stdin=true. Set to -1 for infinite retries.
+total_retries: 10
+# Only pick up local & manual decisions
+origins: ["crowdsec", "cscli"]
