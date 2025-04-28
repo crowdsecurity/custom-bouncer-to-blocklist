@@ -1,5 +1,3 @@
-#!/usr/bin/env -S uv run python3
-
 import os
 import sys
 import json
@@ -16,6 +14,16 @@ from crowdsec_service_api import (
     BlocklistDeleteIPsRequest,
 )
 
+LOG_FILE = "/var/log/push2bl.log"
+
+def log(message):
+    print(message)
+    try:
+        with open(LOG_FILE, "a") as f:
+            f.write(message + "\n")
+    except Exception as e:
+        print(f"Failed to write to log file: {e}")
+
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='CrowdSec bouncer to Service API blocklist')
 parser.add_argument('--blocklist', dest='blocklist_name', 
@@ -25,20 +33,23 @@ parser.add_argument('--sapi-key', dest='api_key',
 args = parser.parse_args()
 
 # Configuration priority: command line args > environment variables > defaults
-SAPI_KEY = (args.api_key or 
-       os.getenv('KEY') or 
-       "xxxxxxx")  # Default as last resort
+SAPI_KEY = args.api_key or os.getenv('SAPI_KEY')
+BLOCKLIST_NAME = args.blocklist_name or os.getenv('BLOCKLIST_NAME')
 
-BLOCKLIST_NAME = (args.blocklist_name or 
-                  os.getenv('BLOCKLIST_NAME') or 
-                  "xxxxxxx")  # Default as last resort
+if not SAPI_KEY:
+    log("Error: No SAPI key provided. Use --sapi-key option or set SAPI_KEY environment variable.")
+    sys.exit(1)
+
+if not BLOCKLIST_NAME:
+    log("Error: No blocklist name provided. Use --blocklist option or set BLOCKLIST_NAME environment variable.")
+    sys.exit(1)
 
 def api_key_auth(auth):
     try:
         client = Info(base_url=Server.production_server.value, auth=auth)
         response = client.get_info()
     except Exception as e:
-        print(f"Error: {e}")
+        log(f"Error: {e}")
         return None
     return response
 
@@ -54,16 +65,16 @@ def del_ip_from_blocklist(auth, blocklist_id, ips, expiration=None):
             blocklist_id=blocklist_id,
         )
 
-        print(f"IPs deleted to blocklist: {blocklist_id}")
-        print(f"IPs: {ips}")
+        log(f"IPs deleted to blocklist: {blocklist_id}")
+        log(f"IPs: {ips}")
         return response
     except HTTPStatusError as e:
-        print(f"HTTP error occurred: {e}")
-        print(f"Status code: {e.response.status_code}")
-        print(f"Response content: {e.response.content}")
+        log(f"HTTP error occurred: {e}")
+        log(f"Status code: {e.response.status_code}")
+        log(f"Response content: {e.response.content}")
         return None
     except Exception as e:
-        print(f"An error occurred: {e}")
+        log(f"An error occurred: {e}")
         return None
 
 def add_ip_to_blocklist(auth, blocklist_id, ips, expiration=None):
@@ -79,16 +90,16 @@ def add_ip_to_blocklist(auth, blocklist_id, ips, expiration=None):
             blocklist_id=blocklist_id,
         )
 
-        print(f"IPs added to blocklist: {blocklist_id}")
-        print(f"IPs: {ips}")
+        log(f"IPs added to blocklist: {blocklist_id}")
+        log(f"IPs: {ips}")
         return response
     except HTTPStatusError as e:
-        print(f"HTTP error occurred: {e}")
-        print(f"Status code: {e.response.status_code}")
-        print(f"Response content: {e.response.content}")
+        log(f"HTTP error occurred: {e}")
+        log(f"Status code: {e.response.status_code}")
+        log(f"Response content: {e.response.content}")
         return None
     except Exception as e:
-        print(f"An error occurred: {e}")
+        log(f"An error occurred: {e}")
         return None
 
 def get_blocklist(auth):
@@ -106,20 +117,20 @@ def get_blocklist(auth):
             if BLOCKLIST_NAME == blocklist.name:
                 print(f"Blocklist found: {BLOCKLIST_NAME}")
                 return blocklist.id
-        print(f"Blocklist not found: {BLOCKLIST_NAME}")
+        log(f"Blocklist not found: {BLOCKLIST_NAME}")
         return None
     except HTTPStatusError as e:
         if e.response.status_code == 404:
             # Blocklist not found
-            print("Blocklist not found")
+            log("Blocklist not found")
             return None
         else:
-            print(f"HTTP error occurred: {e}")
-            print(f"Status code: {e.response.status_code}")
-            print(f"Response content: {e.response.content}")
+            log(f"HTTP error occurred: {e}")
+            log(f"Status code: {e.response.status_code}")
+            log(f"Response content: {e.response.content}")
             return None
     except Exception as e:
-        print(f"An error occurred: {e}")
+        log(f"An error occurred: {e}")
         return None
 
 def parse_duration(duration_str):
@@ -148,71 +159,64 @@ def create_blocklist(auth):
         response = client.create_blocklist(
             request=request,
         )
-        print(f"Blocklist created: {BLOCKLIST_NAME}")
+        log(f"Blocklist created: {BLOCKLIST_NAME}")
         return response.id
     except HTTPStatusError as e:
         if e.response.status_code == 409:
             # Blocklist already exists, fetch instead
-            print(f"Blocklist already exists: {BLOCKLIST_NAME}")
+            log(f"Blocklist already exists: {BLOCKLIST_NAME}")
             return get_blocklist(auth)
         else:
-            print(f"HTTP error occurred: {e}")
-            print(f"Status code: {e.response.status_code}")
-            print(f"Response content: {e.response.content}")
+            log(f"HTTP error occurred: {e}")
+            log(f"Status code: {e.response.status_code}")
+            log(f"Response content: {e.response.content}")
             return None
     except Exception as e:
-        print(f"An error occurred: {e}")
+        log(f"An error occurred: {e}")
         return None
 
 
 def handle_command(action, ip, expiration):
 
     if action not in ["add", "del"]:
-        print("Action must be 'add' or 'del'")
+        log("Action must be 'add' or 'del'")
         return
     if not ip:
-        print("IP must be provided")
+        log("IP must be provided")
         return
     if not expiration:
-        print("Expiration must be provided")
-        return
-
-    # Verify if the API key is set and valid
-    if SAPI_KEY is None:
-        print("API key not set. Please set the KEY environment variable.")
-        return
-    if BLOCKLIST_NAME is None:
-        print("Blocklist name not set. Please set the BLOCKLIST_NAME environment variable.")
+        log("Expiration must be provided")
         return
 
     auth = ApiKeyAuth(api_key=SAPI_KEY)
     if action == "add":
         blocklist_id = create_blocklist(auth)
         if blocklist_id is None:
-            print("Failed to create or fetch blocklist")
+            log("Failed to create or fetch blocklist")
             return
         # Add IPs to blocklist
         ips = [ip]
         add_resp = add_ip_to_blocklist(auth, blocklist_id, ips)
-        print("IPs added to blocklist successfully")
+        log("IPs added to blocklist successfully")
     elif action == "del":
         blocklist_id = get_blocklist(auth)
         if blocklist_id is None:
-            print("Failed to fetch blocklist")
+            log("Failed to fetch blocklist")
             return
         # Remove IPs from blocklist
         ips = [ip]
         del_resp = del_ip_from_blocklist(auth, blocklist_id, ips, expiration=expiration)
-        print("IPs removed from blocklist successfully")
+        log("IPs removed from blocklist successfully")
 
 def main():
+    log(f"Running push-to-bl.py with blocklist: {BLOCKLIST_NAME}")
     for line in sys.stdin:
         command = line.strip()
+        log(f"Received command: {command}")
         if command.lower() == 'exit':
-            print("Exiting.")
+            log("Exiting.")
             break
         # Process the command here
-        print(f"Received command: {command}")
         #{"duration":"3h59m51s","origin":"cscli","scenario":"manual 'ban' from '5cf8aff523424fa68e9335f28fec409aIfHabI3W9GsKHzab'","scope":"Ip","type":"ban","uuid":"6d287fea-2707-4a7c-a7f1-d94d1d1d6c13","value":"42.42.42.42","id":17371391,"action":"add"}
         obj = json.loads(command)
         if not obj:
@@ -221,7 +225,6 @@ def main():
         ip = obj.get("value")
         expiration = parse_duration(obj.get("duration", "1h"))
         handle_command(command, ip, expiration)
-
 
 if __name__ == "__main__":
     main()
