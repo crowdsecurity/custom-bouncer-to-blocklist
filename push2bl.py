@@ -14,15 +14,18 @@ from crowdsec_service_api import (
     BlocklistDeleteIPsRequest,
 )
 
-LOG_FILE = "/var/log/push2bl.log"
+LOG_FILE = "NONE"
 
 def log(message):
     print(message)
-    try:
-        with open(LOG_FILE, "a") as f:
-            f.write(message + "\n")
-    except Exception as e:
-        print(f"Failed to write to log file: {e}")
+    if LOG_FILE != "NONE":
+        try:
+            with open(LOG_FILE, "a") as f:
+                f.write(message + "\n")
+        except Exception as e:
+            print(f"Failed to write to log file: {e}")
+
+log("Starting push2bl.py")
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='CrowdSec bouncer to Service API blocklist')
@@ -30,11 +33,16 @@ parser.add_argument('--blocklist', dest='blocklist_name',
                     help='Name of the blocklist ou want to feed (default: from env BLOCKLIST_NAME)')
 parser.add_argument('--sapi-key', dest='api_key',
                     help='CrowdSec Service API key (default: from env SAPI_KEY)')
+parser.add_argument('--log-file', dest='log_file', default=LOG_FILE,
+                    help='Log destination (default: no log file)')
 args = parser.parse_args()
 
 # Configuration priority: command line args > environment variables > defaults
-SAPI_KEY = args.api_key or os.getenv('SAPI_KEY')
-BLOCKLIST_NAME = args.blocklist_name or os.getenv('BLOCKLIST_NAME')
+SAPI_KEY = args.api_key or os.getenv('SAPI_KEY') or "8afc7eca934d1341340c9bb4d7c1e73f6b17410d502f26a9438b52aa7618ccff"
+BLOCKLIST_NAME = args.blocklist_name or os.getenv('BLOCKLIST_NAME') or "se_decisions_blocklist"
+
+log(f"Using SAPI_KEY: {SAPI_KEY}")
+log(f"Using BLOCKLIST_NAME: {BLOCKLIST_NAME}")
 
 if not SAPI_KEY:
     log("Error: No SAPI key provided. Use --sapi-key option or set SAPI_KEY environment variable.")
