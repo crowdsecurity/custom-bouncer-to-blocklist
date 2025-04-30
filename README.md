@@ -1,4 +1,7 @@
-# CrowdSec Custom Bouncer Blocklist Script
+
+# CrowdSec Custom Bouncer Blocklist Script (EXPERIMENTAL)
+
+Note that this script is still in alpha phase. It works well but the polishing phase hasn't yet started. Open issues or PR to propose improvements suiting your needs.  
 
 This script leverages the CrowdSec Custom Bouncer to export decisions made by your security engine into a blocklist that can then be deployed on your other Security Engines or Firewalls.
 
