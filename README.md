@@ -42,7 +42,7 @@ Then, in the bouncer configuration file (usually located at `/etc/crowdsec/bounc
 
 * Replace the properties mentioned in this repository's `crowdsec-custom-bouncer.yaml` file:
   * Fill `bin_path` with the path to your venv's python 
-  * Replace `bin_args`'s `</path/to/push2bl.py` with the full path to `push2bl.py`
+  * Replace `bin_args`'s `/path/to/push2bl.py` with the full path to `push2bl.py`
   * Replace `bin_args`'s `<your blocklist name>` with the desired blocklist's name. If it doesn't exist, the script will create it for you.
   * Replace `bin_args`'s  `<your Service API Key>` with your SAPI Key. This can be obtained [from the console](https://doc.crowdsec.net/u/service_api/getting_started).
   * Restrict the `origins` to only `"crowdsec"` and `"cscli"` to ensure only security engine or manually added decisions are included.

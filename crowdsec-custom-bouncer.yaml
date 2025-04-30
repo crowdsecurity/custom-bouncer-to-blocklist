@@ -2,7 +2,7 @@
 # Path to python from venv (3.11+)
 bin_path: "<path to your python binary>"
 # Path to the python script
-bin_args: ["<path to push2bl.py>", "--blocklist", "<your blocklist name>", "--sapi-key", "<your Service API Key>"]
+bin_args: ["/path/to/push2bl.py", "--blocklist", "<your blocklist name>", "--sapi-key", "<your Service API Key>"]
 # Invokes binary once and feeds incoming decisions to its stdin.
 feed_via_stdin: true
 # Number of times to restart the binary. relevant if feed_via_stdin=true. Set to -1 for infinite retries.
