@@ -1,5 +1,5 @@
 
-# CrowdSec Custom Bouncer Blocklist Script (EXPERIMENTAL)
+# CrowdSec "Custom-Bouncer to Blocklist" Script (EXPERIMENTAL)
 
 Note that this script is still in alpha phase. It works well but the polishing phase hasn't yet started. Open issues or PR to propose improvements suiting your needs.  
 
