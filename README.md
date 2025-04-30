@@ -1,11 +1,10 @@
 # CrowdSec Custom Bouncer Blocklist Script
 
-This script leverages the CrowdSec Custom Bouncer to export decisions made by your security engine into a blocklist.
+This script leverages the CrowdSec Custom Bouncer to export decisions made by your security engine into a blocklist that can then be deployed on your other Security Engines or Firewalls.
 
 # Requirements and Recommendations
 * Have the [Custom Bouncer](https://doc.crowdsec.net/u/bouncers/custom) installed.
 * Python version ≥ 3.11 (for example, 3.11.2).
-* Use a virtual environment to avoid dependency conflicts.
 * Download this repository or the script `push2bl.py` somewhere the Custom Bouncer can access it.
 * You'll need a [Service API Key](https://doc.crowdsec.net/u/service_api/getting_started), which is an enterprise feature.
 
@@ -24,19 +23,31 @@ This script leverages the CrowdSec Custom Bouncer to export decisions made by yo
   python3 -m pip install -r requirements.txt
   ```
 
-## Install and Configure the Custom Bouncer
-Of course, as usual, [create an API key for your new bouncer](https://doc.crowdsec.net/u/bouncers/intro) using:
+## Customer Bouncer Configuration: Local API Communication
+
+If you deployed the *custom bouncer* on the same machine as the security engine, API Key configuration is done automatically, and you can move to the next section, otherwise:
+
+[Create an API key for your new bouncer](https://doc.crowdsec.net/u/bouncers/intro) using:
 ```bash
 sudo cscli bouncers add myBouncerName
 ```
+
 Then, in the bouncer configuration file (usually located at `/etc/crowdsec/bouncers/crowdsec-custom-bouncer.yaml`):
 * Fill in the **api_url** and API Key.
   * You can find the API server URL in `/etc/crowdsec/config.yaml`, under `api.server.listen_uri`.
   * In the bouncer config, make sure to prefix the URL with `http://`.
+
+
+## Custom Bouncer Configuration: Use `push2bl.py` script
+
 * Replace the properties mentioned in this repository's `crowdsec-custom-bouncer.yaml` file:
-  * Replace the placeholders (strings inside angle brackets) with your own values.
-  * It’s important to restrict the origins to only `"crowdsec"` and `"cscli"` to ensure only security engine or manually added decisions are included.
+  * Fill `bin_path` with the path to your venv's python 
+  * Replace `bin_args`'s `</path/to/push2bl.py` with the full path to `push2bl.py`
+  * Replace `bin_args`'s `<your blocklist name>` with the desired blocklist's name. If it doesn't exist, the script will create it for you.
+  * Replace `bin_args`'s  `<your Service API Key>` with your SAPI Key. This can be obtained [from the console](https://doc.crowdsec.net/u/service_api/getting_started).
+  * Restrict the `origins` to only `"crowdsec"` and `"cscli"` to ensure only security engine or manually added decisions are included.
 * We recommend **not** using a log file, but if you want, you can add the `--log-file` argument followed by an absolute path accessible to the script.
+* Ensure `feed_via_stdin` is set to `true` and `total_retries` is set to non-zero value (`10` is the suggested default)
 
 Then restart the Bouncer.
 
